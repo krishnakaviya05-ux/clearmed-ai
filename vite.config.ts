@@ -3,14 +3,15 @@ import { defineConfig } from 'vite';
 
 
 export default defineConfig({
-      server: {
-        port: 3000,
-        host: '0.0.0.0',
-      },
-      plugins: [],
-      resolve: {
-        alias: {
-          '@': path.resolve(__dirname, '.'),
-        }
-      }
+  base: '/clearmed-ai/',
+  server: {
+    port: 3000,
+    host: '0.0.0.0',
+  },
+  plugins: [],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, '.'),
+    }
+  }
 });
