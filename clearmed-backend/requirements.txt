@@ -8,3 +8,4 @@ groq
 pymupdf
 pytesseract
 pillow
+bcrypt
