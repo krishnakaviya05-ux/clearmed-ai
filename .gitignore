@@ -1,0 +1,55 @@
+# ============================================================
+# Node / Frontend
+# ============================================================
+
+node_modules/
+dist/
+dist-ssr/
+
+*.local
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+
+# ============================================================
+# Python / Backend
+# ============================================================
+
+clearmed-backend/.venv/
+clearmed-backend/__pycache__/
+clearmed-backend/*.pyc
+clearmed-backend/audio_temp/
+
+
+# ============================================================
+# Secrets / Environment Files
+# ============================================================
+
+.env
+.env.*
+!.env.example
+
+
+# ============================================================
+# Editors / OS
+# ============================================================
+
+.vscode/*
+!.vscode/extensions.json
+
+.idea/
+.DS_Store
+
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+# Generated/debug report data
+clearmed-backend/ocr_debug.txt
+clearmed-backend/ocr_report.txt
+clearmed-backend/sns_raw_response.json

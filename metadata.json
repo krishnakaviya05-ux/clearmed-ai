@@ -1,0 +1,6 @@
+{
+  "name": "ClearMed",
+  "description": "AI-powered medical report explainer that translates laboratory and diagnostic reports into clear, patient-friendly explanations.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
