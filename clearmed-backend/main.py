@@ -44,6 +44,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",
         "http://127.0.0.1:3000",
+        "https://krishnakaviya05-ux.github.io",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -98,6 +99,71 @@ def verify_session_token(token: str) -> Optional[dict]:
     if not hmac.compare_digest(signature, expected_sig):
         return None
     return {"user_id": user_id, "email": email}
+
+def is_production_or_secure(request: Request) -> bool:
+    """
+    Detects if the request is running in production (Render), over HTTPS,
+    or originating from a cross-site production frontend (e.g. GitHub Pages).
+    """
+    if os.getenv("ENVIRONMENT", "").lower() in ["production", "prod"]:
+        return True
+    if os.getenv("RENDER") is not None or os.getenv("RENDER_SERVICE_ID") is not None:
+        return True
+    forwarded_proto = request.headers.get("x-forwarded-proto", "").lower()
+    if forwarded_proto == "https" or request.url.scheme == "https":
+        return True
+    origin = request.headers.get("origin", "").lower()
+    if origin.startswith("https://"):
+        return True
+    return False
+
+def set_auth_cookie(response: Response, request: Request, token: str):
+    """
+    Sets session cookie with environment-aware SameSite and Secure attributes:
+    - In production or HTTPS cross-site (GitHub Pages -> Render): samesite="none", secure=True
+    - In local development over HTTP: samesite="lax", secure=False
+    """
+    secure_mode = is_production_or_secure(request)
+    if secure_mode:
+        response.set_cookie(
+            key="session_token",
+            value=token,
+            httponly=True,
+            samesite="none",
+            secure=True,
+            max_age=86400 * 7,
+            path="/"
+        )
+    else:
+        response.set_cookie(
+            key="session_token",
+            value=token,
+            httponly=True,
+            samesite="lax",
+            secure=False,
+            max_age=86400 * 7,
+            path="/"
+        )
+
+def clear_auth_cookie(response: Response, request: Request):
+    """
+    Clears session cookie matching the attributes it was set with.
+    """
+    secure_mode = is_production_or_secure(request)
+    if secure_mode:
+        response.delete_cookie(
+            key="session_token",
+            path="/",
+            samesite="none",
+            secure=True
+        )
+    else:
+        response.delete_cookie(
+            key="session_token",
+            path="/",
+            samesite="lax",
+            secure=False
+        )
 
 # Auth Schemas
 class SignupRequest(BaseModel):
@@ -734,7 +800,7 @@ def db_test():
 
 
 @app.post("/auth/signup", status_code=status.HTTP_201_CREATED)
-def signup(payload: SignupRequest, response: Response):
+def signup(payload: SignupRequest, response: Response, request: Request):
     name = payload.name.strip()
     email = payload.email.strip().lower()
     password = payload.password
@@ -776,14 +842,7 @@ def signup(payload: SignupRequest, response: Response):
 
     # Set session cookie
     token = create_session_token(user_id, email)
-    response.set_cookie(
-        key="session_token",
-        value=token,
-        httponly=True,
-        samesite="lax",
-        max_age=86400 * 7,
-        path="/"
-    )
+    set_auth_cookie(response, request, token)
 
     return {
         "success": True,
@@ -797,7 +856,7 @@ def signup(payload: SignupRequest, response: Response):
 
 
 @app.post("/auth/login")
-def login(payload: LoginRequest, response: Response):
+def login(payload: LoginRequest, response: Response, request: Request):
     email = payload.email.strip().lower()
     password = payload.password
 
@@ -814,14 +873,7 @@ def login(payload: LoginRequest, response: Response):
 
     user_id = str(user["_id"])
     token = create_session_token(user_id, email)
-    response.set_cookie(
-        key="session_token",
-        value=token,
-        httponly=True,
-        samesite="lax",
-        max_age=86400 * 7,
-        path="/"
-    )
+    set_auth_cookie(response, request, token)
 
     return {
         "success": True,
@@ -834,8 +886,8 @@ def login(payload: LoginRequest, response: Response):
 
 
 @app.post("/auth/logout")
-def logout(response: Response):
-    response.delete_cookie(key="session_token", path="/")
+def logout(response: Response, request: Request):
+    clear_auth_cookie(response, request)
     return {
         "success": True,
         "message": "Logged out successfully."
