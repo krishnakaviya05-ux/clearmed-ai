@@ -1,8 +1,14 @@
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Response, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from pymongo import MongoClient
 from datetime import datetime
+from typing import Optional
+from pydantic import BaseModel, Field
+from bson import ObjectId
+import bcrypt
+import hmac
+import hashlib
 import re
 import os
 import logging
@@ -17,6 +23,9 @@ from fastapi.responses import FileResponse
 from fastapi import BackgroundTasks
 from concurrent.futures import ThreadPoolExecutor
 
+env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
+if os.path.exists(env_path):
+    load_dotenv(dotenv_path=env_path, override=True)
 load_dotenv(override=True)
 
 # Setup logging
@@ -24,6 +33,8 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger("clearmed-backend")
 
 OCR_DEBUG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ocr_debug.txt")
+AUTH_SECRET = os.getenv("AUTH_SECRET", "clearmed_auth_secret_key_2026_salt").encode("utf-8")
+EMAIL_REGEX = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]{2,}$")
 
 app = FastAPI(title="ClearMed API")
 
@@ -47,6 +58,56 @@ if not MONGODB_URI:
 mongo_client = MongoClient(MONGODB_URI, serverSelectionTimeoutMS=5000)
 db = mongo_client["clearmed"]
 reports_collection = db["reports"]
+users_collection = db["users"]
+try:
+    users_collection.create_index("email", unique=True)
+except Exception as _idx_err:
+    logger.warning(f"Could not ensure unique index on users.email: {_idx_err}")
+
+# Password Hashing & Session Helpers
+def hash_password(password: str) -> str:
+    salt = bcrypt.gensalt(rounds=12)
+    return bcrypt.hashpw(password.encode("utf-8"), salt).decode("utf-8")
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    try:
+        return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
+    except Exception:
+        return False
+
+def create_session_token(user_id: str, email: str) -> str:
+    exp = int(time.time()) + (86400 * 7)  # 7 days
+    payload = f"{user_id}:{email}:{exp}"
+    signature = hmac.new(AUTH_SECRET, payload.encode("utf-8"), hashlib.sha256).hexdigest()
+    return f"{payload}:{signature}"
+
+def verify_session_token(token: str) -> Optional[dict]:
+    if not token or not isinstance(token, str):
+        return None
+    parts = token.strip().split(":")
+    if len(parts) != 4:
+        return None
+    user_id, email, exp_str, signature = parts
+    try:
+        exp = int(exp_str)
+        if time.time() > exp:
+            return None
+    except ValueError:
+        return None
+    expected_sig = hmac.new(AUTH_SECRET, f"{user_id}:{email}:{exp_str}".encode("utf-8"), hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(signature, expected_sig):
+        return None
+    return {"user_id": user_id, "email": email}
+
+# Auth Schemas
+class SignupRequest(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    email: str = Field(..., min_length=3, max_length=150)
+    password: str = Field(..., min_length=6, max_length=128)
+
+class LoginRequest(BaseModel):
+    email: str = Field(..., min_length=3, max_length=150)
+    password: str = Field(..., min_length=1, max_length=128)
 
 # Config
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
@@ -670,6 +731,148 @@ def db_test():
         return {"database": "MongoDB", "status": "connected"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"MongoDB connection failed: {str(e)}")
+
+
+@app.post("/auth/signup", status_code=status.HTTP_201_CREATED)
+def signup(payload: SignupRequest, response: Response):
+    name = payload.name.strip()
+    email = payload.email.strip().lower()
+    password = payload.password
+
+    if not name:
+        raise HTTPException(status_code=400, detail="Name cannot be empty.")
+    if not EMAIL_REGEX.match(email):
+        raise HTTPException(status_code=400, detail="Please provide a valid email address.")
+    if len(password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters long.")
+
+    # Check for existing user (case-insensitive)
+    existing_user = users_collection.find_one({"email": email})
+    if existing_user:
+        raise HTTPException(
+            status_code=409,
+            detail="An account already exists with this email."
+        )
+
+    password_hash = hash_password(password)
+    user_doc = {
+        "name": name,
+        "email": email,
+        "password_hash": password_hash,
+        "created_at": datetime.utcnow(),
+    }
+
+    try:
+        res = users_collection.insert_one(user_doc)
+        user_id = str(res.inserted_id)
+    except Exception as e:
+        if "duplicate key" in str(e).lower():
+            raise HTTPException(
+                status_code=409,
+                detail="An account already exists with this email."
+            )
+        logger.error(f"Error creating user: {e}")
+        raise HTTPException(status_code=500, detail="Unable to create account. Please try again.")
+
+    # Set session cookie
+    token = create_session_token(user_id, email)
+    response.set_cookie(
+        key="session_token",
+        value=token,
+        httponly=True,
+        samesite="lax",
+        max_age=86400 * 7,
+        path="/"
+    )
+
+    return {
+        "success": True,
+        "message": "Account created successfully.",
+        "user": {
+            "id": user_id,
+            "name": name,
+            "email": email
+        }
+    }
+
+
+@app.post("/auth/login")
+def login(payload: LoginRequest, response: Response):
+    email = payload.email.strip().lower()
+    password = payload.password
+
+    if not email or not password:
+        raise HTTPException(status_code=401, detail="Invalid email or password.")
+
+    user = users_collection.find_one({"email": email})
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid email or password.")
+
+    stored_hash = user.get("password_hash")
+    if not stored_hash or not verify_password(password, stored_hash):
+        raise HTTPException(status_code=401, detail="Invalid email or password.")
+
+    user_id = str(user["_id"])
+    token = create_session_token(user_id, email)
+    response.set_cookie(
+        key="session_token",
+        value=token,
+        httponly=True,
+        samesite="lax",
+        max_age=86400 * 7,
+        path="/"
+    )
+
+    return {
+        "success": True,
+        "user": {
+            "id": user_id,
+            "name": user.get("name", "User"),
+            "email": user.get("email", email)
+        }
+    }
+
+
+@app.post("/auth/logout")
+def logout(response: Response):
+    response.delete_cookie(key="session_token", path="/")
+    return {
+        "success": True,
+        "message": "Logged out successfully."
+    }
+
+
+@app.get("/auth/me")
+def get_current_user(request: Request):
+    token = request.cookies.get("session_token")
+    if not token:
+        auth_header = request.headers.get("Authorization", "")
+        if auth_header.startswith("Bearer "):
+            token = auth_header[7:].strip()
+
+    if not token:
+        raise HTTPException(status_code=401, detail="Not authenticated.")
+
+    session = verify_session_token(token)
+    if not session:
+        raise HTTPException(status_code=401, detail="Invalid or expired session.")
+
+    try:
+        user = users_collection.find_one({"_id": ObjectId(session["user_id"])})
+    except Exception:
+        user = None
+
+    if not user:
+        raise HTTPException(status_code=401, detail="User account not found.")
+
+    return {
+        "success": True,
+        "user": {
+            "id": str(user["_id"]),
+            "name": user.get("name", "User"),
+            "email": user.get("email", session["email"])
+        }
+    }
 
 
 @app.post("/analyze")

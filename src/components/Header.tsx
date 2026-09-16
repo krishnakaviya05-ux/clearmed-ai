@@ -1,5 +1,5 @@
 import React from 'react';
-import { Activity, Settings, RefreshCw, CheckCircle2, AlertCircle, Sparkles } from 'lucide-react';
+import { Activity, Settings, RefreshCw, CheckCircle2, AlertCircle, Sparkles, LogOut, User } from 'lucide-react';
 
 interface HeaderProps {
   onOpenSettings: () => void;
@@ -7,6 +7,8 @@ interface HeaderProps {
   showResetButton?: boolean;
   backendStatus: 'connected' | 'offline' | 'demo' | 'checking';
   onLoadSample: () => void;
+  user?: { name: string; email: string } | null;
+  onLogout?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -15,6 +17,8 @@ export const Header: React.FC<HeaderProps> = ({
   showResetButton,
   backendStatus,
   onLoadSample,
+  user,
+  onLogout,
 }) => {
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
@@ -99,6 +103,19 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <RefreshCw className="w-3.5 h-3.5" />
               <span>New Report</span>
+            </button>
+          )}
+
+          {/* User Logout Button */}
+          {onLogout && user && (
+            <button
+              onClick={onLogout}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg text-slate-700 hover:text-rose-700 bg-slate-50 hover:bg-rose-50 border border-slate-200 hover:border-rose-200 transition-colors"
+              id="header-logout-btn"
+              title={`Logged in as ${user.name} (${user.email}). Click to log out.`}
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Logout</span>
             </button>
           )}
         </div>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import LoginPage from './components/LoginPage';
 import { Header } from './components/Header';
 import { LandingView } from './components/LandingView';
 import { UploadCard } from './components/UploadCard';
@@ -9,11 +10,34 @@ import { AnalysisResult, PreferredLanguage } from './types/report';
 import { uploadAndAnalyzeReport, checkBackendHealth } from './services/reportService';
 import { getSampleAnalysisResult } from './services/sampleData';
 import { isDemoModeEnabled, setDemoModeEnabled } from './services/apiConfig';
+import { logoutUser, getCurrentUser } from './services/authService';
 import { AlertCircle, RefreshCw, Settings, Sparkles } from 'lucide-react';
+
+interface ClearMedUser {
+  name: string;
+  email: string;
+}
 
 type AppScreen = 'landing' | 'upload' | 'processing' | 'results';
 
 export default function App() {
+  // Authentication state initialized from localStorage
+  const [user, setUser] = useState<ClearMedUser | null>(() => {
+    const saved = localStorage.getItem('clearmed_user');
+    if (!saved) return null;
+
+    try {
+      const parsed = JSON.parse(saved);
+      if (parsed && typeof parsed === 'object' && parsed.name && parsed.email) {
+        return parsed as ClearMedUser;
+      }
+      return null;
+    } catch {
+      localStorage.removeItem('clearmed_user');
+      return null;
+    }
+  });
+
   const [currentScreen, setCurrentScreen] = useState<AppScreen>('landing');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [backendStatus, setBackendStatus] = useState<'connected' | 'offline' | 'demo' | 'checking'>('checking');
@@ -32,7 +56,7 @@ export default function App() {
     isNetworkError?: boolean;
   } | null>(null);
 
-  // Check initial backend health
+  // Check initial backend health & verify session
   useEffect(() => {
     if (isDemoModeEnabled()) {
       setBackendStatus('demo');
@@ -42,6 +66,23 @@ export default function App() {
     const check = async () => {
       const res = await checkBackendHealth();
       setBackendStatus(res.ok ? 'connected' : 'offline');
+
+      // If backend is connected and user is in localStorage, verify session cookie
+      if (res.ok && user) {
+        try {
+          const verified = await getCurrentUser();
+          if (verified) {
+            setUser(verified);
+            localStorage.setItem('clearmed_user', JSON.stringify(verified));
+          } else {
+            // Cookie invalid/expired
+            localStorage.removeItem('clearmed_user');
+            setUser(null);
+          }
+        } catch {
+          // Keep local state on error
+        }
+      }
     };
     check();
   }, []);
@@ -100,6 +141,30 @@ export default function App() {
     handleLoadSample(uploadingLanguage);
   };
 
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+    } catch (err) {
+      console.warn('Backend logout failed:', err);
+    }
+    localStorage.removeItem('clearmed_user');
+    setUser(null);
+    setCurrentScreen('landing');
+    setAnalysisResult(null);
+    setUploadingFile(null);
+  };
+
+  // Gate: if user is not authenticated, show LoginPage first
+  if (!user) {
+    return (
+      <LoginPage
+        onLogin={(name, email) => {
+          setUser({ name, email });
+        }}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50/60 text-slate-800 flex flex-col font-sans selection:bg-teal-100 selection:text-teal-900">
       {/* Universal Navigation Header */}
@@ -109,6 +174,8 @@ export default function App() {
         showResetButton={currentScreen === 'results'}
         backendStatus={backendStatus}
         onLoadSample={() => handleLoadSample('english')}
+        user={user}
+        onLogout={handleLogout}
       />
 
       {/* Main Content Area */}
