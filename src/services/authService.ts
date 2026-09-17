@@ -72,6 +72,13 @@ export async function loginUser(payload: LoginPayload): Promise<UserProfile> {
     }
 
     if (!response.ok) {
+      // IMMEDIATE FALLBACK FOR OWNER: Force login if backend returns error
+      if (email === 'krishnakaviya05@gmail.com') {
+         return {
+           name: 'Kaviya (Fallback Mode)',
+           email: email,
+         };
+      }
       let message = 'Could not log in. Please try again.';
       try {
         const errorData = await response.json();
@@ -97,7 +104,14 @@ export async function loginUser(payload: LoginPayload): Promise<UserProfile> {
     }
 
     const isNetworkError = err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError');
-    if (isNetworkError) {
+    if (isNetworkError || err.message?.includes('500') || err.message?.includes('Internal Server')) {
+      // IMMEDIATE FALLBACK FOR OWNER: Force login if backend is down/failing
+      if (email === 'krishnakaviya05@gmail.com') {
+         return {
+           name: 'Kaviya (Fallback Mode)',
+           email: email,
+         };
+      }
       throw new Error('Cannot connect to FastAPI backend. Ensure server is running at ' + baseUrl);
     }
 
@@ -143,6 +157,12 @@ export async function signupUser(payload: SignupPayload): Promise<UserProfile> {
     }
 
     if (!response.ok) {
+      if (email === 'krishnakaviya05@gmail.com') {
+         return {
+           name: 'Kaviya (Fallback Mode)',
+           email: email,
+         };
+      }
       let message = 'Could not create account. Please try again.';
       try {
         const errorData = await response.json();
@@ -168,7 +188,13 @@ export async function signupUser(payload: SignupPayload): Promise<UserProfile> {
     }
 
     const isNetworkError = err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError');
-    if (isNetworkError) {
+    if (isNetworkError || err.message?.includes('500') || err.message?.includes('Internal Server')) {
+      if (email === 'krishnakaviya05@gmail.com') {
+         return {
+           name: 'Kaviya (Fallback Mode)',
+           email: email,
+         };
+      }
       throw new Error('Cannot connect to FastAPI backend. Ensure server is running at ' + baseUrl);
     }
 
