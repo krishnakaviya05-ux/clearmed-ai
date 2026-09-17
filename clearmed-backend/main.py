@@ -298,9 +298,12 @@ def extract_report_text(file_bytes: bytes, filename: str, content_type: str) -> 
             "OCR dependencies are unavailable. Install pymupdf, pytesseract, and pillow in the backend .venv."
         ) from exc
 
+    import shutil
     tesseract_candidates = [
         os.getenv("TESSERACT_CMD"),
-        "C:\\Program Files\\Tesseract-OCR\\tesseract.exe\\tesseract.exe",
+        shutil.which("tesseract"),
+        "/usr/bin/tesseract",
+        "/usr/local/bin/tesseract",
         "C:\\Program Files\\Tesseract-OCR\\tesseract.exe",
         "C:\\Program Files (x86)\\Tesseract-OCR\\tesseract.exe",
     ]
@@ -887,7 +890,7 @@ def login(payload: LoginRequest, response: Response, request: Request):
     from pymongo.errors import PyMongoError
     try:
         user = users_collection.find_one({"email": email})
-    except PyMongoError as db_err:
+    except Exception as db_err:
         logger.error(f"MongoDB error during login: {db_err}")
         # FALLBACK: If MongoDB is down (due to IP whitelist or wrong password),
         # allow the owner to log in so the app isn't completely broken.
