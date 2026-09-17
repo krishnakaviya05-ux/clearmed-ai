@@ -56,36 +56,41 @@ export default function App() {
     isNetworkError?: boolean;
   } | null>(null);
 
-  // Check initial backend health & verify session
+  // Check initial backend health & keep status synchronized
   useEffect(() => {
     if (isDemoModeEnabled()) {
       setBackendStatus('demo');
       return;
     }
 
+    let isMounted = true;
     const check = async () => {
       const res = await checkBackendHealth();
+      if (!isMounted) return;
       setBackendStatus(res.ok ? 'connected' : 'offline');
 
       // If backend is connected and user is in localStorage, verify session cookie
       if (res.ok && user) {
         try {
           const verified = await getCurrentUser();
+          if (!isMounted) return;
           if (verified) {
             setUser(verified);
             localStorage.setItem('clearmed_user', JSON.stringify(verified));
-          } else {
-            // Cookie invalid/expired
-            localStorage.removeItem('clearmed_user');
-            setUser(null);
           }
         } catch {
           // Keep local state on error
         }
       }
     };
+
     check();
-  }, []);
+    const interval = setInterval(check, 6000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [user]);
 
   const handleStartAnalysis = () => {
     setCurrentScreen('upload');

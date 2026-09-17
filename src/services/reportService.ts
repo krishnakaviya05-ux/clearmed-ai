@@ -64,25 +64,47 @@ export function formatBytes(bytes: number): string {
 /**
  * Checks connectivity to the FastAPI backend
  */
-export async function checkBackendHealth(baseUrl?: string): Promise<{ ok: boolean; message: string; details?: any }> {
-  const url = (baseUrl || getDefaultBackendUrl()).replace(/\/+$/, '');
+async function pingEndpoint(url: string, timeoutMs = 3000): Promise<boolean> {
   try {
     const controller = new AbortController();
-    // 15s timeout gives Render free tier sufficient time to wake up on cold starts
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
-
-    // Try common health endpoints in FastAPI
-    let response: Response;
-    try {
-      response = await fetch(`${url}/health`, { signal: controller.signal });
-    } catch {
-      // Fallback check root or /docs
-      response = await fetch(`${url}/docs`, { signal: controller.signal });
-    }
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    const res = await fetch(`${url.replace(/\/+$/, '')}/health`, { signal: controller.signal });
     clearTimeout(timeoutId);
+    return res.ok || res.status === 404 || res.status === 405;
+  } catch {
+    return false;
+  }
+}
 
+/**
+ * Checks connectivity to the FastAPI backend with intelligent auto-discovery
+ */
+export async function checkBackendHealth(baseUrl?: string): Promise<{ ok: boolean; message: string; details?: any }> {
+  const currentUrl = (baseUrl || getDefaultBackendUrl()).replace(/\/+$/, '');
+
+  // 1. Check current configured URL
+  if (await pingEndpoint(currentUrl, 2500)) {
+    return { ok: true, message: `Connected to FastAPI server at ${currentUrl}` };
+  }
+
+  // 2. Auto-discovery: If local FastAPI is running on 127.0.0.1:8000, connect to it
+  if (currentUrl !== 'http://127.0.0.1:8000' && await pingEndpoint('http://127.0.0.1:8000', 1500)) {
+    return { ok: true, message: `Connected to local FastAPI server at http://127.0.0.1:8000` };
+  }
+
+  // 3. Auto-discovery: If hosted Render backend is live, connect to it
+  if (currentUrl !== 'https://clearmed-ai-1.onrender.com' && await pingEndpoint('https://clearmed-ai-1.onrender.com', 4000)) {
+    return { ok: true, message: `Connected to Render FastAPI server` };
+  }
+
+  // 4. Extended wait for waking up servers
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    const response = await fetch(`${currentUrl}/health`, { signal: controller.signal });
+    clearTimeout(timeoutId);
     if (response.ok || response.status === 404 || response.status === 405) {
-      return { ok: true, message: `Connected to FastAPI server at ${url}` };
+      return { ok: true, message: `Connected to FastAPI server at ${currentUrl}` };
     }
     return { ok: false, message: `Server returned status HTTP ${response.status}` };
   } catch (err: any) {
