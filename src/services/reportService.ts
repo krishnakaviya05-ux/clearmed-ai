@@ -129,6 +129,7 @@ export async function uploadAndAnalyzeReport(
     const response = await fetch(endpoint, {
       method: 'POST',
       body: formData,
+      credentials: 'include',
       signal: controller.signal,
     });
 

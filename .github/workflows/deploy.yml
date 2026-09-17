@@ -1,4 +1,4 @@
-﻿name: Deploy ClearMed to GitHub Pages
+name: Deploy ClearMed to GitHub Pages
 
 on:
   push:
@@ -37,7 +37,7 @@ jobs:
       - name: Build
         run: npm run build
         env:
-         VITE_BACKEND_API_URL: https://clearmed-ai-1.onrender.com
+          VITE_BACKEND_API_URL: https://clearmed-ai-1.onrender.com
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

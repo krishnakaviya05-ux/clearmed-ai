@@ -124,7 +124,7 @@ export const BackendSettingsModal: React.FC<BackendSettingsModalProps> = ({
                 type="text"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
-                placeholder="http://localhost:8000"
+                placeholder="https://clearmed-ai-1.onrender.com"
                 className="flex-1 px-3.5 py-2 text-sm bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-teal-500 focus:border-teal-500 font-mono"
                 id="fastapi-url-input"
               />

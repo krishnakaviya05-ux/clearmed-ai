@@ -1,946 +1,481 @@
-@import url('https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&display=swap');
+/* ============================================================
+   ClearMed Professional Healthcare Authentication Styles
+   Accessibility: WCAG AAA Compliant, Elder-Friendly
+   ============================================================ */
 
 :root {
-  --login-paper: #f4efe5;
-  --login-ink: #23252d;
-  --login-accent: #ff6b4b;
-  --login-accent-deep: #e5532f;
-  --login-teal: #2ec4b6;
-  --login-yellow: #ffc53d;
-  --login-shell: #fffdf8;
-  --login-screen: #23252d;
-  --login-eye: #fffdf8;
-  --login-muted: #9a948a;
-  --login-field: #faf7f0;
-  --login-line: 2px solid var(--login-ink);
-  --login-turn: .65s cubic-bezier(.5, -0.3, .25, 1.35);
+  --clearmed-teal-600: #0d9488;
+  --clearmed-teal-700: #0f766e;
+  --clearmed-teal-800: #115e59;
+  --clearmed-teal-50: #f0fdfa;
+  --clearmed-teal-100: #ccfbf1;
+  --clearmed-teal-200: #99f6e4;
+  --clearmed-navy-900: #0f172a;
+  --clearmed-navy-800: #1e293b;
+  --clearmed-slate-600: #475569;
+  --clearmed-slate-500: #64748b;
+  --clearmed-slate-400: #94a3b8;
+  --clearmed-slate-300: #cbd5e1;
+  --clearmed-slate-200: #e2e8f0;
+  --clearmed-slate-100: #f1f5f9;
+  --clearmed-slate-50: #f8fafc;
+  --clearmed-white: #ffffff;
 }
 
 /* ============================================================
-   RESET
+   ROOT CONTAINER
    ============================================================ */
 
-.login-scene,
-.login-scene *,
-.login-scene *::before,
-.login-scene *::after {
+.login-page-root {
+  min-height: 100vh;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--clearmed-slate-50);
+  color: var(--clearmed-navy-900);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   box-sizing: border-box;
 }
 
-.login-scene {
-  font-family: 'Sora', 'Segoe UI', system-ui, sans-serif;
-  color: var(--login-ink);
+.login-page-root *,
+.login-page-root *::before,
+.login-page-root *::after {
+  box-sizing: inherit;
 }
 
 /* ============================================================
-   MAIN SCENE
+   TOP UNIVERSAL BRANDING HEADER
+   Matches ClearMed Main Dashboard Navbar Exactly
    ============================================================ */
 
-.login-scene {
-  min-height: 100vh;
-  min-height: 100svh;
+.login-header-bar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
   width: 100%;
-  display: grid;
-  place-items: center;
-  padding: 110px 24px 70px;
-  overflow: clip;
-  position: relative;
-  background:
-    radial-gradient(
-      rgba(35, 37, 45, .07) 1.2px,
-      transparent 1.3px
-    ) 0 0 / 24px 24px,
-    var(--login-paper);
+  height: 64px;
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--clearmed-slate-200);
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
 }
 
-.login-stage {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  position: relative;
-}
-
-/* ============================================================
-   ROBOT
-   ============================================================ */
-
-.login-robot {
-  position: relative;
-  z-index: 1;
-  margin-bottom: -16px;
-  animation: login-float 4s ease-in-out infinite alternate;
-  perspective: 800px;
-}
-
-@keyframes login-float {
-  from {
-    transform: translateY(0);
-  }
-
-  to {
-    transform: translateY(-5px);
-  }
-}
-
-/* ============================================================
-   ANTENNA
-   ============================================================ */
-
-.login-antenna {
-  position: absolute;
-  top: -32px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  z-index: 2;
-}
-
-.login-antenna-rod {
-  width: 4px;
-  height: 22px;
-  background: var(--login-ink);
-  border-radius: 2px;
-}
-
-.login-antenna-tip {
-  width: 15px;
-  height: 15px;
-  border-radius: 50%;
-  background: var(--login-accent);
-  border: var(--login-line);
-  order: -1;
-  margin-bottom: -2px;
-  position: relative;
-  animation: login-bob 2.4s ease-in-out infinite;
-}
-
-.login-antenna-tip::after {
-  content: '';
-  position: absolute;
-  top: 2px;
-  left: 3px;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, .85);
-}
-
-@keyframes login-bob {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-
-  50% {
-    transform: translateY(-2.5px);
-  }
-}
-
-.login-robot[data-mood="excited"] .login-antenna-tip {
-  animation-duration: .4s;
-  background: var(--login-yellow);
-}
-
-.login-robot[data-mood="success"] .login-antenna-tip {
-  background: var(--login-teal);
-}
-
-/* ============================================================
-   HEAD / 3D
-   ============================================================ */
-
-.login-head3d {
-  width: 152px;
-  height: 140px;
-  perspective: 700px;
-  transform-style: preserve-3d;
-  transform:
-    translateY(var(--login-hy, 0px))
-    scale(var(--login-hsc, 1))
-    rotateX(var(--login-rx, 0deg))
-    rotateY(var(--login-ry, 0deg));
-  transition: transform .25s ease-out;
-  will-change: transform;
-}
-
-.login-stage.login-is-hyped .login-head3d {
-  --login-hy: 5px;
-  --login-hsc: 1.04;
-}
-
-.login-stage.login-is-pressed .login-head3d {
-  --login-hy: 9px;
-  --login-hsc: .94;
-}
-
-/* ============================================================
-   HEAD BODY
-   ============================================================ */
-
-.login-head {
-  position: relative;
-  width: 100%;
+.login-header-container {
+  max-width: 1280px;
   height: 100%;
-  transform-style: preserve-3d;
-  transition: transform var(--login-turn);
-}
-
-.login-stage.login-is-turned .login-head {
-  transform: rotateY(180deg);
-}
-
-.login-stage.login-is-spinning .login-head {
-  animation: login-victory .9s ease-in-out;
-}
-
-@keyframes login-victory {
-  to {
-    transform: rotateY(360deg);
-  }
-}
-
-/* ============================================================
-   EARS
-   ============================================================ */
-
-.login-ear {
-  position: absolute;
-  top: 48px;
-  width: 16px;
-  height: 40px;
-  background: var(--login-shell);
-  border: var(--login-line);
-  border-radius: 8px;
-  transform: translateZ(0);
-}
-
-.login-ear-left {
-  left: -10px;
-}
-
-.login-ear-right {
-  right: -10px;
-}
-
-/* ============================================================
-   FACES
-   ============================================================ */
-
-.login-face {
-  position: absolute;
-  inset: 0;
-  border-radius: 34px;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-  background: var(--login-shell);
-  border: var(--login-line);
-}
-
-.login-face-front {
-  box-shadow: 5px 6px 0 rgba(35, 37, 45, .16);
-}
-
-.login-face-back {
-  box-shadow: 5px 6px 0 rgba(35, 37, 45, .16);
-  transform: rotateY(180deg);
-  display: grid;
-  place-items: center;
-}
-
-/* ============================================================
-   VISOR / FACE
-   ============================================================ */
-
-.login-visor {
-  position: absolute;
-  inset: 22px 16px 20px;
-  background: var(--login-screen);
-  border-radius: 22px;
+  margin: 0 auto;
+  padding: 0 24px;
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.login-brand-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  user-select: none;
+}
+
+.login-brand-icon-box {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background-color: var(--clearmed-teal-600);
+  color: var(--clearmed-white);
+  display: flex;
   align-items: center;
   justify-content: center;
-  gap: 13px;
-  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(13, 148, 136, 0.25);
+  flex-shrink: 0;
 }
 
-.login-eyes {
-  display: flex;
-  gap: 28px;
-  transform:
-    translate(
-      var(--login-lx, 0px),
-      var(--login-ly, 0px)
-    );
-  transition: transform .18s ease-out;
+.login-brand-ecg-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--clearmed-white);
 }
 
-.login-eyes.login-blink .login-eye {
-  transform: scaleY(.08);
-}
-
-.login-eye {
-  width: 19px;
-  height: 25px;
-  border-radius: 9px;
-  background: var(--login-eye);
-  transition: all .22s ease;
-}
-
-/* Happy eyes */
-
-.login-robot[data-mood="happy"] .login-eye,
-.login-robot[data-mood="success"] .login-eye {
-  width: 25px;
-  height: 12px;
-  background: transparent;
-  border: 5px solid var(--login-eye);
-  border-bottom: none;
-  border-radius: 25px 25px 0 0;
-}
-
-/* Excited eyes */
-
-.login-robot[data-mood="excited"] .login-eye {
-  transform: scale(1.2);
-  border-radius: 50%;
-  height: 21px;
-}
-
-/* Pressed eyes */
-
-.login-robot[data-mood="pressed"] .login-eye {
-  width: 24px;
-  height: 12px;
-  background: transparent;
-  border: 5px solid var(--login-eye);
-  border-top: none;
-  border-radius: 0 0 24px 24px;
-}
-
-/* ============================================================
-   CHEEKS
-   ============================================================ */
-
-.login-cheek {
-  position: absolute;
-  top: 59%;
-  width: 15px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--login-accent);
-  opacity: 0;
-  transition: opacity .3s ease;
-}
-
-.login-cheek-left {
-  left: 15px;
-}
-
-.login-cheek-right {
-  right: 15px;
-}
-
-.login-robot[data-mood="happy"] .login-cheek,
-.login-robot[data-mood="excited"] .login-cheek,
-.login-robot[data-mood="pressed"] .login-cheek,
-.login-robot[data-mood="success"] .login-cheek {
-  opacity: .9;
-}
-
-/* ============================================================
-   MOUTH
-   ============================================================ */
-
-.login-mouth {
-  width: 15px;
-  height: 5px;
-  border-radius: 4px;
-  background: var(--login-eye);
-  transition: all .25s ease;
-}
-
-.login-robot[data-mood="watching"] .login-mouth {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-}
-
-.login-robot[data-mood="happy"] .login-mouth {
-  width: 30px;
-  height: 12px;
-  border-radius: 0 0 16px 16px;
-}
-
-.login-robot[data-mood="excited"] .login-mouth {
-  width: 22px;
-  height: 16px;
-  border-radius: 0 0 13px 13px;
-}
-
-.login-robot[data-mood="pressed"] .login-mouth {
-  width: 27px;
-  height: 15px;
-  border-radius: 0 0 14px 14px;
-}
-
-.login-robot[data-mood="success"] .login-mouth {
-  width: 38px;
-  height: 17px;
-  border-radius: 0 0 20px 20px;
-}
-
-/* ============================================================
-   BACK OF HEAD / PANEL
-   ============================================================ */
-
-.login-panel {
-  width: 116px;
-  padding: 12px 10px 10px;
-  background: var(--login-screen);
-  border-radius: 16px;
+.login-brand-text-col {
   display: flex;
   flex-direction: column;
+}
+
+.login-brand-headline {
+  display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.login-panel-lights {
-  display: flex;
-  gap: 6px;
+.login-brand-title {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  color: var(--clearmed-navy-900);
+  line-height: 1.2;
 }
 
-.login-panel-lights i {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--login-accent);
-  animation: login-bob 1.8s ease-in-out infinite;
-}
-
-.login-panel-lights i:nth-child(2) {
-  animation-delay: .3s;
-  background: var(--login-yellow);
-}
-
-.login-panel-lights i:nth-child(3) {
-  animation-delay: .6s;
-  background: var(--login-teal);
-}
-
-/* ============================================================
-   PASSWORD METER
-   ============================================================ */
-
-.login-meter {
-  display: flex;
-  gap: 5px;
-}
-
-.login-meter i {
-  width: 15px;
-  height: 20px;
+.login-brand-tag {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--clearmed-teal-700);
+  background-color: var(--clearmed-teal-50);
+  border: 1px solid rgba(45, 212, 191, 0.6);
+  padding: 2px 6px;
   border-radius: 4px;
-  background: #3b3e49;
-  transition: background .25s ease;
+  line-height: 1.2;
 }
 
-.login-meter[data-lvl="1"] i.on {
-  background: #ff5c4d;
-}
-
-.login-meter[data-lvl="2"] i.on {
-  background: #ff9f43;
-}
-
-.login-meter[data-lvl="3"] i.on {
-  background: var(--login-yellow);
-}
-
-.login-meter[data-lvl="4"] i.on {
-  background: var(--login-teal);
-}
-
-.login-panel p {
-  margin: 0;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 1.5px;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  color: var(--login-paper);
-  white-space: nowrap;
+.login-brand-tagline {
+  margin: 2px 0 0 0;
+  font-size: 12px;
+  color: var(--clearmed-slate-600);
+  font-weight: 500;
+  line-height: 1.3;
 }
 
 /* ============================================================
-   SPEECH BUBBLE
+   MAIN CONTENT AREA
    ============================================================ */
 
-.login-bubble {
-  position: absolute;
-  bottom: calc(100% + 16px);
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--login-shell);
-  border: var(--login-line);
-  color: var(--login-ink);
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.35;
-  padding: 9px 14px;
-  border-radius: 12px;
-  width: max-content;
-  max-width: 250px;
-  text-align: center;
-  box-shadow: 3px 3px 0 rgba(35, 37, 45, .9);
-  z-index: 3;
-}
-
-.login-bubble::after {
-  content: '';
-  position: absolute;
-  top: calc(100% - 5px);
-  left: 50%;
-  width: 10px;
-  height: 10px;
-  background: var(--login-shell);
-  border-right: var(--login-line);
-  border-bottom: var(--login-line);
-  transform: translateX(-50%) rotate(45deg);
-}
-
-.login-bubble.login-pop {
-  animation:
-    login-pop .3s cubic-bezier(.34, 1.56, .64, 1);
-}
-
-@keyframes login-pop {
-  from {
-    transform: translateX(-50%) scale(.8);
-  }
-
-  to {
-    transform: translateX(-50%) scale(1);
-  }
-}
-
-/* ============================================================
-   FORM CARD
-   ============================================================ */
-
-.login-card {
-  position: relative;
-  z-index: 2;
-  width: min(344px, calc(100vw - 48px));
-  background:
-    linear-gradient(
-      165deg,
-      #fffefb 0%,
-      #fdfaf3 45%,
-      #f7f1e4 100%
-    );
-  border: var(--login-line);
-  border-radius: 20px;
-  padding: 36px 28px 40px;
-  box-shadow: 8px 9px 0 rgba(35, 37, 45, .9);
-}
-
-/* ============================================================
-   ROBOT HANDS
-   ============================================================ */
-
-.login-hand {
-  position: absolute;
-  top: -16px;
-  width: 44px;
-  height: 32px;
-  background:
-    linear-gradient(
-      90deg,
-      transparent 31%,
-      rgba(35, 37, 45, .9) 32%,
-      rgba(35, 37, 45, .9) 36%,
-      transparent 37%,
-      transparent 63%,
-      rgba(35, 37, 45, .9) 64%,
-      rgba(35, 37, 45, .9) 68%,
-      transparent 69%
-    ) 0 12px / 100% calc(100% - 12px) no-repeat,
-    var(--login-shell);
-  border: var(--login-line);
-  border-radius: 9px 9px 14px 14px;
-  z-index: 3;
-  transition: transform .25s ease;
-}
-
-.login-hand-left {
-  left: 36px;
-}
-
-.login-hand-right {
-  right: 36px;
-}
-
-/* Robot mood affects hands */
-
-.login-stage.login-is-hyped .login-card .login-hand {
-  transform: translateY(-3px) scaleY(1.08);
-}
-
-/* ============================================================
-   ROBOT FEET
-   ============================================================ */
-
-.login-foot {
-  position: absolute;
-  bottom: -26px;
-  width: 54px;
-  height: 34px;
-  background: var(--login-shell);
-  border: var(--login-line);
-  border-radius: 9px 9px 14px 14px;
-  box-shadow: inset 0 -9px 0 rgba(35, 37, 45, .12);
-  z-index: -1;
-}
-
-.login-foot-left {
-  left: 62px;
-}
-
-.login-foot-right {
-  right: 62px;
-}
-
-/* ============================================================
-   TITLE
-   ============================================================ */
-
-.login-title {
-  font-size: 19px;
-  font-weight: 800;
-  letter-spacing: -.2px;
-  text-align: center;
-  margin: 0 0 24px;
-}
-
-/* ============================================================
-   FORM FIELDS
-   ============================================================ */
-
-.login-field {
+.login-main-wrapper {
+  flex: 1;
   display: flex;
   align-items: center;
-  gap: 10px;
-  height: 52px;
-  padding: 0 14px;
-  margin-bottom: 14px;
-  background: var(--login-field);
-  border: 2px solid rgba(35, 37, 45, .22);
-  border-radius: 12px;
-  transition:
-    border-color .18s ease,
-    box-shadow .18s ease,
-    transform .18s ease;
-  cursor: text;
+  justify-content: center;
+  padding: 40px 20px 60px;
 }
 
-.login-field:focus-within {
-  border-color: var(--login-ink);
-  box-shadow: 3px 3px 0 var(--login-accent);
-  transform: translate(-1px, -1px);
+/* ============================================================
+   LOGIN CARD
+   Calm, modern healthcare card with soft borders and subtle shadow
+   ============================================================ */
+
+.login-card-container {
+  width: 100%;
+  max-width: 440px;
+  background-color: var(--clearmed-white);
+  border: 1px solid var(--clearmed-slate-200);
+  border-radius: 16px;
+  padding: 40px 36px 36px;
+  box-shadow:
+    0 4px 20px -2px rgba(15, 23, 42, 0.06),
+    0 2px 6px -1px rgba(15, 23, 42, 0.03);
 }
 
-.login-field-icon {
-  width: 19px;
-  height: 19px;
-  fill: var(--login-muted);
-  flex: none;
-  transition: fill .18s ease;
+.login-card-intro {
+  margin-bottom: 24px;
+  text-align: center;
 }
 
-.login-field:focus-within .login-field-icon {
-  fill: var(--login-ink);
+.login-card-heading {
+  margin: 0 0 8px 0;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  color: var(--clearmed-navy-900);
+  line-height: 1.3;
 }
 
-.login-field input {
-  flex: 1;
-  min-width: 0;
-  border: none;
-  outline: none;
-  background: transparent;
-  font: inherit;
+.login-card-subheading {
+  margin: 0;
   font-size: 14.5px;
-  font-weight: 600;
-  color: var(--login-ink);
+  color: var(--clearmed-slate-600);
+  line-height: 1.5;
+  font-weight: 400;
 }
 
-.login-field input::placeholder {
-  color: var(--login-muted);
+/* ============================================================
+   STATUS NOTIFICATIONS (ACCESSIBLE, CLEAN ALERTS)
+   ============================================================ */
+
+.login-alert-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.45;
+  margin-bottom: 20px;
+}
+
+.login-alert-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.login-alert-error {
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}
+
+.login-alert-success {
+  background-color: var(--clearmed-teal-50);
+  border: 1px solid var(--clearmed-teal-200);
+  color: var(--clearmed-teal-800);
+}
+
+.login-alert-content {
+  flex: 1;
+}
+
+/* ============================================================
+   FORM FIELDS (ELDER-FRIENDLY & HIGH-CONTRAST)
+   ============================================================ */
+
+.login-card-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.login-field-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.login-field-label-split {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.login-field-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--clearmed-navy-800);
+  letter-spacing: -0.1px;
+}
+
+.login-field-hint {
+  font-size: 12px;
+  color: var(--clearmed-slate-500);
   font-weight: 500;
 }
 
-/* ============================================================
-   PASSWORD TOGGLE
-   ============================================================ */
-
-.login-peek {
-  border: none;
-  background: none;
-  padding: 4px;
-  cursor: pointer;
-  border-radius: 8px;
-  display: grid;
-  place-items: center;
-}
-
-.login-peek svg {
-  width: 20px;
-  height: 20px;
-  fill: var(--login-muted);
-  transition: fill .18s ease;
-}
-
-.login-peek:hover svg,
-.login-peek[aria-pressed="true"] svg {
-  fill: var(--login-ink);
-}
-
-.login-peek:focus-visible {
-  outline: 2px solid var(--login-ink);
-}
-
-/* ============================================================
-   LOGIN BUTTON
-   ============================================================ */
-
-.login-btn {
+.login-field-input-box {
   position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.login-field-icon {
+  position: absolute;
+  left: 14px;
+  width: 19px;
+  height: 19px;
+  color: var(--clearmed-slate-400);
+  pointer-events: none;
+  transition: color 0.15s ease;
+}
+
+.login-field-control {
   width: 100%;
-  height: 54px;
-  margin-top: 10px;
-  border: var(--login-line);
-  border-radius: 12px;
-  background: var(--login-accent);
-  color: #fff;
-  font: inherit;
-  font-size: 15px;
-  font-weight: 800;
-  letter-spacing: 1px;
+  height: 50px;
+  padding: 0 16px 0 44px;
+  font-size: 15.5px;
+  font-weight: 500;
+  color: var(--clearmed-navy-900);
+  background-color: var(--clearmed-white);
+  border: 1.5px solid var(--clearmed-slate-300);
+  border-radius: 10px;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.login-field-control::placeholder {
+  color: var(--clearmed-slate-400);
+  font-weight: 400;
+}
+
+.login-field-control:hover {
+  border-color: var(--clearmed-slate-400);
+}
+
+.login-field-control:focus {
+  outline: none;
+  border-color: var(--clearmed-teal-600);
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.16);
+}
+
+.login-field-control:focus + .login-field-icon,
+.login-field-input-box:focus-within .login-field-icon {
+  color: var(--clearmed-teal-600);
+}
+
+/* Password Toggle Button */
+.login-field-peek-btn {
+  position: absolute;
+  right: 8px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--clearmed-slate-500);
+  border-radius: 8px;
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.login-field-peek-btn:hover {
+  color: var(--clearmed-navy-900);
+  background-color: var(--clearmed-slate-100);
+}
+
+.login-field-peek-btn:focus-visible {
+  outline: 2px solid var(--clearmed-teal-600);
+  outline-offset: 1px;
+}
+
+/* ============================================================
+   PRIMARY ACTION BUTTON
+   Large, high-contrast, prominent
+   ============================================================ */
+
+.login-primary-btn {
+  width: 100%;
+  height: 52px;
+  margin-top: 8px;
+  background-color: var(--clearmed-teal-600);
+  color: var(--clearmed-white);
+  font-size: 15.5px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  border: none;
+  border-radius: 10px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  box-shadow: 4px 5px 0 rgba(35, 37, 45, .9);
+  box-shadow: 0 2px 5px rgba(13, 148, 136, 0.25);
   transition:
-    transform .18s cubic-bezier(.34, 1.56, .64, 1),
-    box-shadow .18s ease,
-    background .25s ease;
+    background-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.1s ease;
 }
 
-.login-btn:hover,
-.login-btn:focus-visible {
-  transform: translate(-2px, -2px);
-  background: var(--login-accent-deep);
-  box-shadow: 7px 8px 0 rgba(35, 37, 45, .9);
+.login-primary-btn:hover {
+  background-color: var(--clearmed-teal-700);
+  box-shadow: 0 4px 10px rgba(13, 148, 136, 0.3);
 }
 
-.login-btn:active {
-  transform: translate(3px, 4px);
-  box-shadow: 0 0 0 rgba(35, 37, 45, .9);
+.login-primary-btn:active {
+  transform: scale(0.99);
 }
 
-.login-btn:focus-visible {
-  outline: 3px solid var(--login-ink);
-  outline-offset: 3px;
+.login-primary-btn:focus-visible {
+  outline: 3px solid rgba(13, 148, 136, 0.4);
+  outline-offset: 2px;
 }
 
-.login-btn-bolt {
-  display: inline-block;
-  opacity: 0;
-  transform:
-    translateX(-10px)
-    scale(.4)
-    rotate(-30deg);
-  transition:
-    all .3s cubic-bezier(.34, 1.56, .64, 1);
-}
-
-.login-btn:hover .login-btn-bolt,
-.login-btn:focus-visible .login-btn-bolt {
-  opacity: 1;
+.login-primary-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
   transform: none;
-  animation: login-bolt-jitter .4s ease-in-out infinite;
 }
 
-@keyframes login-bolt-jitter {
-  0%,
-  100% {
-    transform: rotate(-7deg) scale(1);
-  }
-
-  50% {
-    transform: rotate(7deg) scale(1.2);
-  }
-}
-
-.login-btn.login-is-success {
-  background: var(--login-teal);
+.login-btn-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 /* ============================================================
-   ERROR SHAKE
+   MODE SWITCH FOOTER (SIGN UP / LOGIN TOGGLE)
    ============================================================ */
 
-.login-card.login-shake {
-  animation: login-shake .4s ease;
-}
-
-@keyframes login-shake {
-  0%,
-  100% {
-    transform: translateX(0);
-  }
-
-  25% {
-    transform: translateX(-7px);
-  }
-
-  50% {
-    transform: translateX(6px);
-  }
-
-  75% {
-    transform: translateX(-3px);
-  }
-}
-
-/* ============================================================
-   CONFETTI
-   ============================================================ */
-
-.login-confetti {
-  position: absolute;
-  width: 10px;
-  height: 10px;
-  top: 0;
-  left: 0;
-  border-radius: 2px;
-  pointer-events: none;
-  z-index: 10;
-}
-
-/* ============================================================
-   RESPONSIVE
-   ============================================================ */
-
-@media (max-width: 560px) {
-  .login-scene {
-    padding-top: 96px;
-  }
-
-  .login-bubble {
-    max-width: 210px;
-    font-size: 12.5px;
-  }
-
-  .login-card {
-    width: min(344px, calc(100vw - 32px));
-  }
-}
-
-/* ============================================================
-   REDUCED MOTION
-   ============================================================ */
-
-@media (prefers-reduced-motion: reduce) {
-  .login-robot {
-    animation: none;
-  }
-
-  .login-antenna-tip,
-  .login-panel-lights i {
-    animation: none;
-  }
-
-  .login-head {
-    transition-duration: .01s;
-  }
-
-  .login-btn:hover .login-btn-bolt {
-    animation: none;
-  }
-
-  .login-stage.login-is-spinning .login-head {
-    animation: none;
-  }
-
-  .login-bubble.login-pop {
-    animation: none;
-  }
-
-  .login-eyes {
-    transition: none;
-  }
-}
-
-/* ============================================================
-   AUTH SWITCH & FEEDBACK STYLES (SCOPED TO LOGIN)
-   ============================================================ */
-
-.login-switch {
-  margin-top: 18px;
+.login-mode-switch-row {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--clearmed-slate-200);
   text-align: center;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--login-muted);
 }
 
-.login-switch-btn {
+.login-mode-switch-copy {
+  margin: 0;
+  font-size: 14.5px;
+  color: var(--clearmed-slate-600);
+  font-weight: 500;
+}
+
+.login-mode-switch-link {
   background: none;
   border: none;
-  padding: 0;
-  margin-left: 6px;
-  color: var(--login-ink);
-  font: inherit;
-  font-weight: 800;
+  padding: 2px 4px;
+  margin-left: 4px;
+  color: var(--clearmed-teal-700);
+  font-size: 14.5px;
+  font-weight: 700;
   text-decoration: underline;
   text-underline-offset: 3px;
   cursor: pointer;
-  transition: color .18s ease;
+  border-radius: 4px;
+  transition: color 0.15s ease;
 }
 
-.login-switch-btn:hover {
-  color: var(--login-accent);
+.login-mode-switch-link:hover {
+  color: var(--clearmed-teal-800);
 }
 
-.login-error-banner {
-  margin-bottom: 14px;
-  padding: 10px 12px;
-  background: #ffebe8;
-  border: 2px solid #ff5c4d;
-  border-radius: 10px;
-  color: #b91c1c;
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1.35;
-  text-align: center;
-  animation: login-pop .25s ease;
+.login-mode-switch-link:focus-visible {
+  outline: 2px solid var(--clearmed-teal-600);
 }
 
-.login-success-banner {
-  margin-bottom: 14px;
-  padding: 10px 12px;
-  background: #e6fbf7;
-  border: 2px solid #2ec4b6;
-  border-radius: 10px;
-  color: #0f766e;
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1.35;
-  text-align: center;
-  animation: login-pop .25s ease;
+/* ============================================================
+   RESPONSIVE ADJUSTMENTS (MOBILE & TABLET)
+   ============================================================ */
+
+@media (max-width: 640px) {
+  .login-header-container {
+    padding: 0 16px;
+  }
+
+  .login-brand-tagline {
+    display: none;
+  }
+
+  .login-main-wrapper {
+    padding: 24px 16px 40px;
+  }
+
+  .login-card-container {
+    padding: 30px 22px 28px;
+    border-radius: 14px;
+  }
+
+  .login-card-heading {
+    font-size: 21px;
+  }
+
+  .login-card-subheading {
+    font-size: 13.5px;
+  }
+
+  .login-field-control {
+    height: 48px;
+    font-size: 15px;
+  }
+
+  .login-primary-btn {
+    height: 48px;
+    font-size: 15px;
+  }
 }
