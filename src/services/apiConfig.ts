@@ -13,15 +13,22 @@ export function getDefaultBackendUrl(): string {
       window.location.hostname === '127.0.0.1' ||
       window.location.hostname === '0.0.0.0');
 
-  if (typeof window !== 'undefined') {
-    const saved = localStorage.getItem(STORAGE_KEY_BACKEND_URL);
-    if (saved) {
-      // Clear stale localhost URL if running on production (e.g. GitHub Pages)
-      if (!isLocalhost && (saved.includes('localhost') || saved.includes('127.0.0.1'))) {
-        localStorage.removeItem(STORAGE_KEY_BACKEND_URL);
-      } else {
+  // When running locally on the machine, always prioritize the local FastAPI server
+  if (isLocalhost) {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(STORAGE_KEY_BACKEND_URL);
+      if (saved && (saved.includes('localhost') || saved.includes('127.0.0.1') || saved.includes('8000'))) {
         return saved.trim().replace(/\/+$/, '');
       }
+    }
+    return LOCAL_BACKEND_URL;
+  }
+
+  // When running on remote hosting (e.g. GitHub Pages or Vercel):
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem(STORAGE_KEY_BACKEND_URL);
+    if (saved && !saved.includes('localhost') && !saved.includes('127.0.0.1')) {
+      return saved.trim().replace(/\/+$/, '');
     }
   }
 
@@ -30,16 +37,7 @@ export function getDefaultBackendUrl(): string {
     return envUrl.trim().replace(/\/+$/, '');
   }
 
-  // If in production build or running on non-localhost domain (such as GitHub Pages),
-  // default to the live Render backend
-  if (!isLocalhost || (import.meta as any).env?.PROD) {
-    if (isLocalhost) {
-      return LOCAL_BACKEND_URL;
-    }
-    return PRODUCTION_BACKEND_URL;
-  }
-
-  return LOCAL_BACKEND_URL;
+  return PRODUCTION_BACKEND_URL;
 }
 
 export function setBackendUrl(url: string): void {

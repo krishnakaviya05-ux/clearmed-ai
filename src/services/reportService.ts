@@ -123,74 +123,89 @@ export async function uploadAndAnalyzeReport(
   language: PreferredLanguage,
   options?: AnalysisApiOptions
 ): Promise<AnalysisResult> {
-  const baseUrl = getDefaultBackendUrl();
+  const primaryUrl = getDefaultBackendUrl();
 
-  // If user explicitly enabled Demo Mode or backend is unreachable in simulated testing
+  // If user explicitly enabled Demo Mode
   if (isDemoModeEnabled()) {
     return simulateBackendWorkflow(file, language, options?.onStageChange);
   }
 
   const formData = new FormData();
-  // EXACT field names required by backend:
-  // "The upload field must use the backend field name: medical_report"
   formData.append('medical_report', file);
-  // "Preferred language field must use: preferred_language"
   formData.append('preferred_language', language);
-
-  const endpoint = options?.customEndpoint || `${baseUrl}/analyze`;
 
   options?.onStageChange?.('uploading', 'Uploading report');
 
-  try {
-    const controller = new AbortController();
-    const timeoutMs = options?.timeoutMs || 90000; // 90s for LLM analysis
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  // Candidate backend endpoints to try in order
+  const candidateBases = [
+    primaryUrl,
+    'http://127.0.0.1:8000',
+    'https://clearmed-ai-1.onrender.com',
+  ].filter((u, idx, arr) => arr.indexOf(u) === idx);
 
-    // Call stage callback progression
-    simulateStageProgression(options?.onStageChange);
+  let lastError: any = null;
 
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      body: formData,
-      credentials: 'include',
-      signal: controller.signal,
-    });
+  for (const candidateBase of candidateBases) {
+    const endpoint = options?.customEndpoint || `${candidateBase}/analyze`;
+    try {
+      const controller = new AbortController();
+      const timeoutMs = options?.timeoutMs || 90000; // 90s for analysis
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-    clearTimeout(timeoutId);
+      simulateStageProgression(options?.onStageChange);
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      let parsedError = errorText;
-      try {
-        const json = JSON.parse(errorText);
-        parsedError = json.detail || json.message || errorText;
-      } catch {
-        // Keep string
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        let parsedError = errorText;
+        try {
+          const json = JSON.parse(errorText);
+          parsedError = json.detail || json.message || errorText;
+        } catch {
+          // Keep string
+        }
+        throw new Error(`Backend error (${response.status}): ${parsedError}`);
       }
-      throw new Error(`Backend error (${response.status}): ${parsedError}`);
-    }
 
-    const data = await response.json();
-    return normalizeBackendResponse(data, file.name, file.size, language);
-  } catch (err: any) {
-    if (err.name === 'AbortError') {
+      const data = await response.json();
+      setBackendUrl(candidateBase);
+      return normalizeBackendResponse(data, file.name, file.size, language);
+    } catch (err: any) {
+      lastError = err;
+      const isNetworkError = err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError');
+      if (isNetworkError) {
+        console.warn(`Could not reach ${candidateBase}, trying next candidate...`);
+        continue;
+      }
+      throw err;
+    }
+  }
+
+  if (lastError) {
+    if (lastError.name === 'AbortError') {
       throw new Error('The analysis request timed out. Please verify your backend server or network.');
     }
-
-    // If fetch failed (likely no local FastAPI running in this cloud sandbox environment),
-    // provide a helpful error that lets user either reconfigure or switch to demo mode
-    const isNetworkError = err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError');
+    const isNetworkError = lastError.message?.includes('Failed to fetch') || lastError.message?.includes('NetworkError');
     if (isNetworkError) {
       const enhancedError = new Error(
-        `Unable to reach FastAPI backend at ${baseUrl}. Please ensure your backend is running (e.g. uvicorn main:app --reload) and CORS is enabled, or test with Sample Mode.`
+        `Unable to reach FastAPI backend. Please verify your server at http://127.0.0.1:8000 is active.`
       );
       (enhancedError as any).isNetworkError = true;
-      (enhancedError as any).originalError = err;
+      (enhancedError as any).originalError = lastError;
       throw enhancedError;
     }
-
-    throw err;
+    throw lastError;
   }
+
+  throw new Error('Unable to reach FastAPI backend server.');
 }
 
 /**
