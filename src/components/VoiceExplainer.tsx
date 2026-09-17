@@ -32,6 +32,7 @@ export const VoiceExplainer: React.FC<VoiceExplainerProps> = ({
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const activeChunk = chunks[currentChunkIndex] || chunks[0];
+  const activeAudioSource = activeChunk?.audio_base64 || activeChunk?.audio_url || '';
 
   // Language display text
   const getLanguageLabel = (lang: PreferredLanguage) => {
@@ -59,8 +60,8 @@ export const VoiceExplainer: React.FC<VoiceExplainerProps> = ({
       setIsPlaying(false);
     } else {
       setPlaybackError(null);
-      if (!audioRef.current.src && activeChunk?.audio_url) {
-        audioRef.current.src = activeChunk.audio_url;
+      if (!audioRef.current.src && activeAudioSource) {
+        audioRef.current.src = activeAudioSource;
       }
       audioRef.current.play().then(() => {
         setIsPlaying(true);
@@ -68,7 +69,7 @@ export const VoiceExplainer: React.FC<VoiceExplainerProps> = ({
       }).catch((e) => {
         console.warn('Audio playback prevented or failed:', e);
         setIsPlaying(false);
-        setPlaybackError('Audio playback failed. Check that the backend audio file is reachable.');
+        setPlaybackError('Audio playback failed. Click Play to retry.');
       });
     }
   };
@@ -150,7 +151,7 @@ export const VoiceExplainer: React.FC<VoiceExplainerProps> = ({
       {/* Hidden HTML audio element */}
       <audio
         ref={audioRef}
-        src={activeChunk?.audio_url}
+        src={activeAudioSource}
         preload="auto"
         crossOrigin="anonymous"
         onTimeUpdate={handleTimeUpdate}

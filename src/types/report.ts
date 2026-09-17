@@ -14,6 +14,7 @@ export interface TestItem {
 
 export interface AudioChunk {
   audio_url: string;
+  audio_base64?: string;
   language_code: string;
   chunk_index: number;
   total_chunks: number;

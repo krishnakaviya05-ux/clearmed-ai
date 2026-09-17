@@ -322,6 +322,7 @@ export function normalizeBackendResponse(
 
       return {
         audio_url: audioUrl,
+        audio_base64: chunk.audio_base64 || chunk.base64 || chunk.base64_audio || undefined,
         language_code: chunk.language_code || 'en-US',
         chunk_index: chunk.chunk_index ?? i + 1,
         total_chunks: chunk.total_chunks ?? rawAudio.length,
