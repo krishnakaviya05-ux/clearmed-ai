@@ -1,5 +1,5 @@
 import { AnalysisResult, PreferredLanguage, TestItem, TestStatus, AudioChunk } from '../types/report';
-import { getDefaultBackendUrl, isDemoModeEnabled } from './apiConfig';
+import { getDefaultBackendUrl, isDemoModeEnabled, setBackendUrl } from './apiConfig';
 import { getSampleAnalysisResult } from './sampleData';
 
 /**
