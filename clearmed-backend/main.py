@@ -45,6 +45,8 @@ app.add_middleware(
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "https://krishnakaviya05-ux.github.io",
+        "https://clearmed-ai-roan.vercel.app",
+        "https://clearmed-20mxl8ptt-aura-kicks.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
