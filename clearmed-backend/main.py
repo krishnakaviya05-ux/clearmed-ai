@@ -815,7 +815,13 @@ def signup(payload: SignupRequest, response: Response, request: Request):
         raise HTTPException(status_code=400, detail="Password must be at least 6 characters long.")
 
     # Check for existing user (case-insensitive)
-    existing_user = users_collection.find_one({"email": email})
+    from pymongo.errors import PyMongoError
+    try:
+        existing_user = users_collection.find_one({"email": email})
+    except PyMongoError as db_err:
+        logger.error(f"MongoDB error during signup: {db_err}")
+        raise HTTPException(status_code=500, detail="Database connection failed. Check MongoDB credentials and IP Whitelist.")
+
     if existing_user:
         raise HTTPException(
             status_code=409,
@@ -865,7 +871,13 @@ def login(payload: LoginRequest, response: Response, request: Request):
     if not email or not password:
         raise HTTPException(status_code=401, detail="Invalid email or password.")
 
-    user = users_collection.find_one({"email": email})
+    from pymongo.errors import PyMongoError
+    try:
+        user = users_collection.find_one({"email": email})
+    except PyMongoError as db_err:
+        logger.error(f"MongoDB error during login: {db_err}")
+        raise HTTPException(status_code=500, detail="Database connection failed. Check MongoDB credentials and IP Whitelist.")
+
     if not user:
         raise HTTPException(status_code=401, detail="Invalid email or password.")
 
