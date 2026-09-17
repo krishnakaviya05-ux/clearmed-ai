@@ -44,10 +44,18 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",
         "http://127.0.0.1:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:4173",
+        "http://127.0.0.1:4173",
+        "http://localhost:8080",
+        "http://127.0.0.1:8000",
+        "http://localhost:8000",
         "https://krishnakaviya05-ux.github.io",
         "https://clearmed-ai-roan.vercel.app",
         "https://clearmed-20mxl8ptt-aura-kicks.vercel.app",
     ],
+    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1|.*\.github\.io|.*\.vercel\.app|.*\.onrender\.com)(:\d+)?",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -290,15 +298,8 @@ def extract_report_text(file_bytes: bytes, filename: str, content_type: str) -> 
         raise ValueError("Unsupported report format. Please upload a PDF, JPG, JPEG, or PNG file.")
 
     import pymupdf as fitz
-    try:
-        import pytesseract
-        from PIL import Image
-    except ImportError as exc:
-        raise RuntimeError(
-            "OCR dependencies are unavailable. Install pymupdf, pytesseract, and pillow in the backend .venv."
-        ) from exc
-
     import shutil
+
     tesseract_candidates = [
         os.getenv("TESSERACT_CMD"),
         shutil.which("tesseract"),
@@ -306,13 +307,9 @@ def extract_report_text(file_bytes: bytes, filename: str, content_type: str) -> 
         "/usr/local/bin/tesseract",
         "C:\\Program Files\\Tesseract-OCR\\tesseract.exe",
         "C:\\Program Files (x86)\\Tesseract-OCR\\tesseract.exe",
+        os.path.expanduser("~\\AppData\\Local\\Programs\\Tesseract-OCR\\tesseract.exe"),
     ]
     tesseract_path = next((path for path in tesseract_candidates if path and os.path.isfile(path)), None)
-    if not tesseract_path:
-        raise RuntimeError(
-            "Tesseract OCR executable was not found. Install Tesseract OCR and set TESSERACT_CMD in clearmed-backend/.env."
-        )
-    pytesseract.pytesseract.tesseract_cmd = tesseract_path
 
     page_count = 1
     normal_char_count = 0
@@ -330,34 +327,56 @@ def extract_report_text(file_bytes: bytes, filename: str, content_type: str) -> 
         normal_text = "\n\n".join(page.get_text("text").strip() for page in document).strip()
         normal_char_count = len(normal_text)
 
-        # If normal PDF text extraction returns little/no text (< 50 chars), render every page and run OCR
-        if normal_char_count < 50:
-            logger.info(
-                f"Normal PDF text extraction returned {normal_char_count} chars. "
-                f"Running high-resolution Tesseract OCR on all {page_count} pages."
-            )
-            ocr_pages = []
-            try:
-                for page in document:
-                    # Matrix 2.3 (~165 DPI) preserves tabular row alignments and prevents character corruption
-                    pixmap = page.get_pixmap(matrix=fitz.Matrix(2.3, 2.3), alpha=False)
-                    image = Image.frombytes("RGB", [pixmap.width, pixmap.height], pixmap.samples)
-                    page_text = pytesseract.image_to_string(image)
-                    ocr_pages.append(page_text)
-            except Exception as exc:
-                document.close()
-                logger.error(f"OCR extraction failed: {exc}")
-                raise RuntimeError("Tesseract OCR could not process this report.") from exc
-
-            document.close()
-            report_text = "\n\n".join(page.strip() for page in ocr_pages if page.strip()).strip()
-            ocr_char_count = len(report_text)
-        else:
+        # If normal PDF text extraction returns good text (>= 50 chars), use it directly
+        if normal_char_count >= 50:
             document.close()
             report_text = normal_text
+        else:
+            # Scanned PDF: need OCR
+            logger.info(
+                f"Normal PDF text extraction returned {normal_char_count} chars. "
+                f"Attempting high-resolution Tesseract OCR on all {page_count} pages."
+            )
+            if tesseract_path:
+                try:
+                    import pytesseract
+                    from PIL import Image
+                    pytesseract.pytesseract.tesseract_cmd = tesseract_path
+                    ocr_pages = []
+                    for page in document:
+                        pixmap = page.get_pixmap(matrix=fitz.Matrix(2.3, 2.3), alpha=False)
+                        image = Image.frombytes("RGB", [pixmap.width, pixmap.height], pixmap.samples)
+                        page_text = pytesseract.image_to_string(image)
+                        ocr_pages.append(page_text)
+                    document.close()
+                    report_text = "\n\n".join(page.strip() for page in ocr_pages if page.strip()).strip()
+                    ocr_char_count = len(report_text)
+                except Exception as exc:
+                    document.close()
+                    logger.warning(f"OCR extraction encountered error: {exc}")
+                    if normal_char_count > 0:
+                        report_text = normal_text
+                    else:
+                        raise RuntimeError("Tesseract OCR could not process this scanned report.") from exc
+            else:
+                document.close()
+                if normal_char_count > 0:
+                    report_text = normal_text
+                else:
+                    raise RuntimeError(
+                        "This report is a scanned image requiring OCR, but Tesseract OCR executable was not found on the server. Please deploy using Docker."
+                    )
     else:
         # Direct image file
+        if not tesseract_path:
+            raise RuntimeError(
+                "Image report requires OCR, but Tesseract OCR executable was not found on the server. Please deploy using Docker."
+            )
+
         try:
+            import pytesseract
+            from PIL import Image
+            pytesseract.pytesseract.tesseract_cmd = tesseract_path
             image = Image.open(BytesIO(file_bytes))
             report_text = pytesseract.image_to_string(image).strip()
             ocr_char_count = len(report_text)
@@ -603,12 +622,12 @@ def _voice_text_chunks(analysis_data: dict, max_chars: int = 2500) -> list[str]:
     return chunks
 
 
-def generate_sarvam_voice(analysis_data: dict, preferred_language: str):
+def generate_sarvam_voice(analysis_data: dict, preferred_language: str, base_url: str = ""):
     """Generate local MP3 chunks directly with Sarvam Text-to-Speech."""
     if not SARVAM_API_KEY:
         return [], "Voice explanation is temporarily unavailable."
 
-    language_code = {"english": "en-IN", "tamil": "ta-IN", "hindi": "hi-IN"}[preferred_language]
+    language_code = {"english": "en-IN", "tamil": "ta-IN", "hindi": "hi-IN"}.get(preferred_language, "en-IN")
     chunks = _voice_text_chunks(analysis_data)
     if not chunks:
         return [], "Voice explanation is temporarily unavailable."
@@ -669,10 +688,15 @@ def generate_sarvam_voice(analysis_data: dict, preferred_language: str):
         logger.warning(f"Sarvam voice generation failed (non-fatal): {str(exc)[:200]}")
         return [], "Voice explanation is temporarily unavailable."
 
-    base_url = os.getenv("BACKEND_URL", "http://127.0.0.1:8000").rstrip("/")
+    resolved_base_url = (base_url or os.getenv("BACKEND_URL", "")).rstrip("/")
+    if resolved_base_url:
+        audio_prefix = f"{resolved_base_url}/audio"
+    else:
+        audio_prefix = "/audio"
+
     return [
         {
-            "audio_url": f"{base_url}/audio/{filename}",
+            "audio_url": f"{audio_prefix}/{filename}",
             "language_code": language_code,
             "chunk_index": index,
             "total_chunks": len(generated_files),
@@ -782,16 +806,22 @@ def health():
 
 @app.get("/audio/{filename}")
 def get_audio(filename: str):
-    """Serve temporarily stored MP3 files."""
-    filepath = os.path.join(AUDIO_DIR, filename)
+    """Serve temporarily stored MP3 files with proper media headers."""
+    safe_filename = os.path.basename(filename)
+    filepath = os.path.join(AUDIO_DIR, safe_filename)
     if not os.path.exists(filepath) or not os.path.isfile(filepath):
-        logger.warning(f"Audio file requested but not found: {filename}")
+        logger.warning(f"Audio file requested but not found: {safe_filename}")
         raise HTTPException(status_code=404, detail="Audio file not found or expired")
     
     return FileResponse(
         filepath, 
         media_type="audio/mpeg", 
-        filename=filename
+        filename=safe_filename,
+        headers={
+            "Accept-Ranges": "bytes",
+            "Cache-Control": "public, max-age=3600",
+            "Access-Control-Allow-Origin": "*",
+        }
     )
 
 
@@ -986,6 +1016,7 @@ def get_current_user(request: Request):
 
 @app.post("/analyze")
 async def analyze_report(
+    request: Request,
     background_tasks: BackgroundTasks,
     medical_report: UploadFile = File(...),
     preferred_language: str = Form("english"),
@@ -1073,7 +1104,15 @@ async def analyze_report(
     # 4. Validate Groq analysis against extracted source text
     validate_groq_analysis(analysis_data, report_text)
 
-    voice_future = loop.run_in_executor(executor, generate_sarvam_voice, analysis_data, preferred_language)
+    # Derive dynamic base URL from request or env
+    forwarded_proto = request.headers.get("x-forwarded-proto", request.url.scheme)
+    host = request.headers.get("x-forwarded-host", request.headers.get("host", request.url.netloc))
+    request_base_url = f"{forwarded_proto}://{host}".rstrip("/") if host else ""
+    backend_base_url = os.getenv("BACKEND_URL", request_base_url).rstrip("/")
+
+    voice_future = loop.run_in_executor(
+        executor, generate_sarvam_voice, analysis_data, preferred_language, backend_base_url
+    )
     voice_output, voice_error = await voice_future
 
     # 4. Normalize and merge

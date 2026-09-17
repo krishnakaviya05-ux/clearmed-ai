@@ -68,7 +68,8 @@ export async function checkBackendHealth(baseUrl?: string): Promise<{ ok: boolea
   const url = (baseUrl || getDefaultBackendUrl()).replace(/\/+$/, '');
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3500);
+    // 15s timeout gives Render free tier sufficient time to wake up on cold starts
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
 
     // Try common health endpoints in FastAPI
     let response: Response;
@@ -87,7 +88,7 @@ export async function checkBackendHealth(baseUrl?: string): Promise<{ ok: boolea
   } catch (err: any) {
     return {
       ok: false,
-      message: err.name === 'AbortError' ? 'Connection timed out' : (err.message || 'Cannot reach server'),
+      message: err.name === 'AbortError' ? 'Connection timed out (backend may be waking up)' : (err.message || 'Cannot reach server'),
     };
   }
 }
@@ -295,19 +296,40 @@ export function normalizeBackendResponse(
     unknown: data.summary?.unknown ?? tests.filter((t) => t.status === 'UNKNOWN').length,
   };
 
-  // Voice output chunks
+  // Voice output chunks with intelligent audio URL resolution
+  const baseUrl = getDefaultBackendUrl().replace(/\/+$/, '');
   let voiceOutput: AudioChunk[] | undefined;
   const rawAudio = data.voice_output || data.audio_chunks || data.voice_chunks || data.audio;
   if (Array.isArray(rawAudio)) {
-    voiceOutput = rawAudio.map((chunk: any, i: number) => ({
-      audio_url: chunk.audio_url || chunk.url || '',
-      language_code: chunk.language_code || 'en-US',
-      chunk_index: chunk.chunk_index ?? i + 1,
-      total_chunks: chunk.total_chunks ?? rawAudio.length,
-      title: chunk.title || `Audio Part ${i + 1}`,
-      text: chunk.text,
-      duration_seconds: chunk.duration_seconds,
-    }));
+    voiceOutput = rawAudio.map((chunk: any, i: number) => {
+      let audioUrl = (chunk.audio_url || chunk.url || '').trim();
+      if (audioUrl) {
+        if (audioUrl.startsWith('/')) {
+          audioUrl = `${baseUrl}${audioUrl}`;
+        } else if (
+          (audioUrl.includes('localhost') || audioUrl.includes('127.0.0.1')) &&
+          !baseUrl.includes('localhost') &&
+          !baseUrl.includes('127.0.0.1')
+        ) {
+          try {
+            const urlObj = new URL(audioUrl);
+            audioUrl = `${baseUrl}${urlObj.pathname}${urlObj.search}`;
+          } catch {
+            audioUrl = `${baseUrl}/audio/${chunk.file_name || ''}`;
+          }
+        }
+      }
+
+      return {
+        audio_url: audioUrl,
+        language_code: chunk.language_code || 'en-US',
+        chunk_index: chunk.chunk_index ?? i + 1,
+        total_chunks: chunk.total_chunks ?? rawAudio.length,
+        title: chunk.title || `Audio Part ${i + 1}`,
+        text: chunk.text,
+        duration_seconds: chunk.duration_seconds,
+      };
+    });
   }
 
   return {

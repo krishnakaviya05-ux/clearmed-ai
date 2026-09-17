@@ -53,3 +53,4 @@ clearmed-backend/audio_temp/
 clearmed-backend/ocr_debug.txt
 clearmed-backend/ocr_report.txt
 clearmed-backend/sns_raw_response.json
+.vercel

@@ -58,8 +58,13 @@ export const VoiceExplainer: React.FC<VoiceExplainerProps> = ({
       audioRef.current.pause();
       setIsPlaying(false);
     } else {
+      setPlaybackError(null);
+      if (!audioRef.current.src && activeChunk?.audio_url) {
+        audioRef.current.src = activeChunk.audio_url;
+      }
       audioRef.current.play().then(() => {
         setIsPlaying(true);
+        setPlaybackError(null);
       }).catch((e) => {
         console.warn('Audio playback prevented or failed:', e);
         setIsPlaying(false);
@@ -70,7 +75,7 @@ export const VoiceExplainer: React.FC<VoiceExplainerProps> = ({
 
   const handleAudioError = () => {
     setIsPlaying(false);
-    setPlaybackError('Audio could not be loaded. The voice file may be unavailable.');
+    setPlaybackError('Audio could not be loaded. The voice file may be unavailable or expired.');
   };
 
   const handleTimeUpdate = () => {
@@ -145,8 +150,9 @@ export const VoiceExplainer: React.FC<VoiceExplainerProps> = ({
       {/* Hidden HTML audio element */}
       <audio
         ref={audioRef}
-        src={activeChunk.audio_url}
-        preload="metadata"
+        src={activeChunk?.audio_url}
+        preload="auto"
+        crossOrigin="anonymous"
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
         onEnded={handleAudioEnded}
